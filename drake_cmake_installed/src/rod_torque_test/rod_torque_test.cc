@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <random>
 #include <chrono>
+#include <math.h>
 
 #include "drake/common/autodiff.h"
 #include "drake/common/drake_assert.h"
@@ -189,6 +190,81 @@ class InverseDynamicsTest {
     }
   }
 
+  void CalcGravityCompensatingTorqueForRod() {
+    auto tree = std::make_unique<RigidBodyTree<double>>();
+
+    // TODO1: change the URDF model
+    drake::parsers::sdf::AddModelInstancesFromSdfFile(
+        "/home/willfeng/.gazebo/models/rod_torque_test/model.sdf",
+        drake::multibody::joints::kFixed, nullptr /* weld to frame */,
+        tree.get());
+    Init(std::move(tree), true /* pure gravity compensation */);
+
+    // Init RNG
+    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dis(-0.5, 0.5);
+
+    auto velocity = VectorXd::Zero(tree_->get_num_velocities());
+    // desired acceleration. 
+    VectorXd vd_d = VectorXd::Zero(tree_->get_num_velocities());
+    // Defines an arbitrary robot position vector.
+    Eigen::VectorXd robot_position = Eigen::VectorXd::Zero(1);
+
+    double position_list[] = {0.0, 1.5707, 3.1416, -1.5707, 0.7854, -0.7854};
+
+    for (int i = 0; i < sizeof(position_list)/sizeof(*position_list); i++) {
+      // robot_position << dis(gen);
+      robot_position << position_list[i];
+
+      double rod_weight_kg = 1;
+      double rod_length_m = 1;
+      double payload_weight_kg = 100;
+      double g = 9.8;
+
+      double expected_torque_from_rod = (rod_weight_kg * g) * (rod_length_m / 2) * sin(position_list[i]);
+      double expected_torque_from_payload = (payload_weight_kg * g) * rod_length_m * sin(position_list[i]);
+
+      std::cout << "robot_position: " << robot_position << ", " << "expected gravity torque: " << expected_torque_from_rod + expected_torque_from_payload << "\n";
+
+      high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+      // std::cout << "tree_->get_num_positions(): " << tree_->get_num_positions() << "\n";
+      // std::cout << "tree_->get_num_velocities(): " << tree_->get_num_velocities() << "\n";
+
+      auto state_input = make_unique<BasicVector<double>>(
+          tree_->get_num_positions() + tree_->get_num_velocities());
+
+      state_input->get_mutable_value() << robot_position, velocity;
+      context_->FixInputPort(
+          inverse_dynamics_->get_input_port_estimated_state().get_index(),
+          std::move(state_input));
+
+      // Hook input of the expected size.
+      inverse_dynamics_->CalcOutput(*context_, output_.get());
+
+      // Compute the expected torque.
+      // VectorXd expected_torque = ComputeTorque(*tree_, robot_position, velocity, vd_d);
+
+      // The above is equivalent to:
+
+      // KinematicsCache<double> cache = (*tree_).doKinematics(robot_position, velocity);
+      // eigen_aligned_std_unordered_map<RigidBody<double> const*, drake::TwistVector<double>> f_ext;
+
+      // VectorXd expected_torque = (*tree_).massMatrix(cache) * vd_d + (*tree_).dynamicsBiasTerm(cache, f_ext);
+
+      // Checks the expected and computed gravity torque.
+      const BasicVector<double>* output_vector = output_->get_vector_data(0);
+      // EXPECT_TRUE(CompareMatrices(expected_torque, output_vector->get_value(),
+      //                             1e-10, MatrixCompareType::absolute));
+      // std::cout << "expected_torque: " << expected_torque << "\n";
+      std::cout << "robot_position: " << robot_position << ", " << "calculated torque: " << output_vector->get_value() << "\n"; // NOTE: this is in SI unit (N * m)
+      
+      std::chrono::duration<double> diff = high_resolution_clock::now() - t1;
+      std::cout << "Duration: " << diff.count() * 1000 << " ms\n";
+    }
+  }
+
   std::unique_ptr<RigidBodyTree<double>> tree_;
   std::unique_ptr<InverseDynamics<double>> inverse_dynamics_;
   std::unique_ptr<Context<double>> context_;
@@ -202,5 +278,5 @@ class InverseDynamicsTest {
 
 int main(int argc, char** argv) {
   drake::systems::controllers::InverseDynamicsTest test;
-  test.BenchmarkCalcGravityCompensatingTorque();
+  test.CalcGravityCompensatingTorqueForRod();
 }

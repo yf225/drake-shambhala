@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 # Send over the SDF file so the particle example can be run "in place."
-configure_file(models/particle.sdf "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
+configure_file(models/rod.sdf "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
 
 find_package(GFlags MODULE REQUIRED COMPONENTS shared)
 
