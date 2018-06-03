@@ -30,10 +30,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# Send over the SDF file so the particle example can be run "in place."
-configure_file(models/rod.sdf "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
-
 find_package(GFlags MODULE REQUIRED COMPONENTS shared)
 
-add_executable(rod_torque_test rod_torque_test.cc)
-target_link_libraries(rod_torque_test drake::drake drake::drake-common-text-logging-gflags gflags_shared)
+add_library(torque_calculator torque_calculator.cpp torque_calculator.h)
+target_link_libraries(torque_calculator drake::drake drake::drake-common-text-logging-gflags gflags_shared)
+
+add_executable(torque_calculator_test torque_calculator_test.cpp)
+target_link_libraries(torque_calculator_test torque_calculator drake::drake drake::drake-common-text-logging-gflags gflags_shared)
+
+add_executable(feedforward_control feedforward_control.cpp)
+target_link_libraries(feedforward_control EposCmd torque_calculator drake::drake drake::drake-common-text-logging-gflags gflags_shared)

@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <pose frame=''>0 0 1.015 0 -0 0</pose>
       <inertial>
         <pose frame=''>0 0 -0.5 0 -0 0</pose>
-        <mass>1</mass>
+        <mass>1.105</mass>
       </inertial>
       <collision name='arm_collision'>
         <pose frame=''>0 0 -0.5 0 -0 0</pose>
@@ -102,7 +102,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       <pose frame=''>0 0 1.015 0 -0 0</pose>
       <inertial>
         <pose frame=''>0 0 -0.985 0 -0 0</pose>
-        <mass>100</mass>
+        <mass>{PAYLOAD_MASS}</mass>
       </inertial>
       <visual name='payload_visual'>
         <pose frame=''>0 0 -0.985 0 -0 0</pose>
